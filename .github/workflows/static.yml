@@ -1,43 +1,77 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Next.js CI with SonarQube + S3 Artifact
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  ci-pipeline:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      # --------------------------------------
+      # CHECKOUT PROJECT
+      # --------------------------------------
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          fetch-depth: 0    # required for SonarQube
+
+      # --------------------------------------
+      # SETUP NODE
+      # --------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      # --------------------------------------
+      # INSTALL DEPENDENCIES
+      # --------------------------------------
+      - name: Install dependencies
+        run: npm ci
+
+      # --------------------------------------
+      # RUN TESTS
+      # --------------------------------------
+      - name: Run tests
+        run: npm test
+
+      # --------------------------------------
+      # SONARQUBE CODE ANALYSIS
+      # --------------------------------------
+      - name: Run SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=NextJSProject
+            -Dsonar.projectName=NextJSProject
+            -Dsonar.sources=.
+            -Dsonar.exclusions=node_modules/**,out/**
+
+      # --------------------------------------
+      # BUILD NEXT.JS PROJECT
+      # --------------------------------------
+      - name: Build Next.js project
+        run: |
+          npm run build
+          npm run export   # creates /out folder
+
+      # --------------------------------------
+      # UPLOAD NEXT.JS ARTIFACT TO S3
+      # --------------------------------------
+      - name: Upload build to S3
+        uses: aws-actions/s3-sync@v2
+        with:
+          bucket: ${{ secrets.AWS_S3_BUCKET }}
+          region: ${{ secrets.AWS_REGION }}
+          source: "./out"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
