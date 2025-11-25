@@ -1,4 +1,4 @@
-name: SonarQube Code Scan Only
+name: SonarCloud Scan Only
 
 on:
   push:
@@ -7,29 +7,28 @@ on:
     branches: ["main", "master"]
 
 jobs:
-  sonar-scan:
+  sonarcloud:
     runs-on: ubuntu-latest
 
     steps:
       # --------------------------------------
       # 1. CHECKOUT
       # --------------------------------------
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # required for SonarQube
+          fetch-depth: 0   # Required for analysis
 
       # --------------------------------------
-      # 2. SONARQUBE SCAN (TEST)
+      # 2. SONARCLOUD SCAN
       # --------------------------------------
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v2
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # SonarCloud token
         with:
           args: >
-            -Dsonar.projectKey=NextJSProject
-            -Dsonar.projectName=NextJSProject
+            -Dsonar.projectKey=test-blog-sonacloud
+            -Dsonar.organization=aherkunal06
             -Dsonar.sources=.
             -Dsonar.exclusions=node_modules/**
