@@ -1,4 +1,4 @@
-name: Next.js CI + SonarQube
+name: SonarQube Code Scan Only
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: ["main", "master"]
 
 jobs:
-  ci-pipeline:
+  sonar-scan:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,30 +20,7 @@ jobs:
           fetch-depth: 0   # required for SonarQube
 
       # --------------------------------------
-      # 2. NODE SETUP
-      # --------------------------------------
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-          cache: "npm"
-
-      # --------------------------------------
-      # 3. INSTALL DEPENDENCIES
-      # --------------------------------------
-      - name: Install dependencies
-        run: npm ci
-
-      # --------------------------------------
-      # 4. BUILD NEXT.JS PROJECT
-      # --------------------------------------
-      - name: Build Next.js
-        run: |
-          npm run build
-          npm run export
-
-      # --------------------------------------
-      # 5. SONARQUBE CODE SCAN (TEST ANALYSIS)
+      # 2. SONARQUBE SCAN (TEST)
       # --------------------------------------
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v2
@@ -55,4 +32,4 @@ jobs:
             -Dsonar.projectKey=NextJSProject
             -Dsonar.projectName=NextJSProject
             -Dsonar.sources=.
-            -Dsonar.exclusions=node_modules/**,out/**
+            -Dsonar.exclusions=node_modules/**
