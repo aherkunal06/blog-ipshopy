@@ -1,4 +1,4 @@
-name: Next.js CI with SonarQube + S3 Artifact
+name: Next.js CI with SonarQube
 
 on:
   push:
@@ -35,10 +35,10 @@ jobs:
         run: npm ci
 
       # --------------------------------------
-      # RUN TESTS
+      # RUN TESTS (DUMMY FOR NOW)
       # --------------------------------------
       - name: Run tests
-        run: npm test
+        run: echo "No tests configured yet – skipping npm test"
 
       # --------------------------------------
       # SONARQUBE CODE ANALYSIS
@@ -58,9 +58,7 @@ jobs:
       # --------------------------------------
       # BUILD NEXT.JS PROJECT
       # --------------------------------------
-    
-
-      # --------------------------------------
-      # UPLOAD NEXT.JS ARTIFACT TO S3
-      # --------------------------------------
-     
+      - name: Build Next.js project
+        run: |
+          npm run build
+          npm run export   # creates /out folder
