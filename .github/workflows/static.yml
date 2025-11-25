@@ -1,4 +1,4 @@
-name: Next.js CI with SonarQube
+name: Next.js CI + SonarQube
 
 on:
   push:
@@ -12,15 +12,15 @@ jobs:
 
     steps:
       # --------------------------------------
-      # CHECKOUT PROJECT
+      # 1. CHECKOUT
       # --------------------------------------
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0    # required for SonarQube
+          fetch-depth: 0   # required for SonarQube
 
       # --------------------------------------
-      # SETUP NODE
+      # 2. NODE SETUP
       # --------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,36 +29,30 @@ jobs:
           cache: "npm"
 
       # --------------------------------------
-      # INSTALL DEPENDENCIES
+      # 3. INSTALL DEPENDENCIES
       # --------------------------------------
       - name: Install dependencies
         run: npm ci
 
       # --------------------------------------
-      # RUN TESTS (DUMMY FOR NOW)
+      # 4. BUILD NEXT.JS PROJECT
       # --------------------------------------
-      - name: Run tests
-        run: echo "No tests configured yet – skipping npm test"
+      - name: Build Next.js
+        run: |
+          npm run build
+          npm run export
 
       # --------------------------------------
-      # SONARQUBE CODE ANALYSIS
+      # 5. SONARQUBE CODE SCAN (TEST ANALYSIS)
       # --------------------------------------
-      - name: Run SonarQube Scan
+      - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            -Dsonar.projectKey=ipshopy-test
-            -Dsonar.projectName=ipshopy-test
+            -Dsonar.projectKey=NextJSProject
+            -Dsonar.projectName=NextJSProject
             -Dsonar.sources=.
             -Dsonar.exclusions=node_modules/**,out/**
-
-      # --------------------------------------
-      # BUILD NEXT.JS PROJECT
-      # --------------------------------------
-      - name: Build Next.js project
-        run: |
-          npm run build
-          npm run export   # creates /out folder
