@@ -5,7 +5,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import TextEditor from "@/admin-components/TextEditor";
+//import TextEditor from "@/admin-components/TextEditor";
 import { slugify } from "@/utils/slugify";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
@@ -342,7 +342,7 @@ export default function CreateBlog() {
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Content
         </label>
-        <TextEditor value={content} onChange={setContent} />
+        < /*TextEditor value={content} onChange={setContent} /*/>
       </div>
 
       {/* Submit */}
