@@ -58,20 +58,9 @@ jobs:
       # --------------------------------------
       # BUILD NEXT.JS PROJECT
       # --------------------------------------
-      - name: Build Next.js project
-        run: |
-          npm run build
-          npm run export   # creates /out folder
+    
 
       # --------------------------------------
       # UPLOAD NEXT.JS ARTIFACT TO S3
       # --------------------------------------
-      - name: Upload build to S3
-        uses: aws-actions/s3-sync@v1
-        with:
-          bucket: ${{ secrets.AWS_S3_BUCKET }}
-          region: ${{ secrets.AWS_REGION }}
-          source: "./out"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+     
