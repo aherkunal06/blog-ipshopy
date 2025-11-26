@@ -2,8 +2,8 @@ name: NextJS Dev CI-CD to Amazon Linux EC2
 
 on:
   push:
-    branches: [ "main" ]        # 🔁 change to "main" or others if needed
-  workflow_dispatch:           # manual run button
+    branches: [ "main" ]        # change to dev if needed
+  workflow_dispatch:
 
 jobs:
   build_and_scan:
@@ -31,14 +31,14 @@ jobs:
       - name: Build Next.js app
         run: npm run build
 
-      # 🔍 SonarCloud / SonarQube Scan
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v4.0.0
+      # 🔍 SonarCloud Scan (Fixed indentation)
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: "https://sonarcloud.io"
 
-      # 📦 Upload build artifact (code + .next output is fine)
+      # 📦 Upload build artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -59,7 +59,7 @@ jobs:
         with:
           name: nextjs-build
 
-      # 📤 Copy files to EC2 (Amazon Linux)
+      # 📤 Copy to EC2
       - name: Copy files to EC2 via SCP
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -70,7 +70,7 @@ jobs:
           target: "/var/www/next-app"
           overwrite: true
 
-      # 🚀 Install deps & run Next.js with PM2 on EC2
+      # 🚀 Deploy on EC2
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -79,13 +79,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /var/www/next-app
-
-            # Install dependencies (keep dev deps for Next build)
             npm install
-
-            # Build Next.js app (server-side)
             npm run build
-
-            # Start or restart with PM2 (Next.js on port 3000)
             pm2 start "npm start" --name nextjs-dev || pm2 restart nextjs-dev
             pm2 save
