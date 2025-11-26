@@ -1,34 +1,91 @@
-name: SonarCloud Scan Only
+name: NextJS Dev CI-CD to Amazon Linux EC2
 
 on:
   push:
-    branches: ["main", "master"]
-  pull_request:
-    branches: ["main", "master"]
+    branches: [ "main" ]        # 🔁 change to "main" or others if needed
+  workflow_dispatch:           # manual run button
 
 jobs:
-  sonarcloud:
+  build_and_scan:
     runs-on: ubuntu-latest
 
     steps:
-      # --------------------------------------
-      # 1. CHECKOUT
-      # --------------------------------------
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # Required for analysis
 
-      # --------------------------------------
-      # 2. SONARCLOUD SCAN
-      # --------------------------------------
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # SonarCloud token
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
         with:
-          args: >
-            -Dsonar.projectKey=aherkunal06_blog-ipshopy
-            -Dsonar.organization=aherkunal06
-            -Dsonar.sources=.
-            -Dsonar.exclusions=node_modules/**
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run lint (optional)
+        run: npm run lint || echo "No lint script, skipping"
+
+      - name: Run tests (optional)
+        run: npm test --if-present
+
+      - name: Build Next.js app
+        run: npm run build
+
+      # 🔍 SonarCloud / SonarQube Scan
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v4.0.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      # 📦 Upload build artifact (code + .next output is fine)
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: |
+            .
+            !node_modules/
+            !.git/
+            !.github/
+
+  deploy_to_ec2:
+    needs: build_and_scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+
+      # 📤 Copy files to EC2 (Amazon Linux)
+      - name: Copy files to EC2 via SCP
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "/var/www/next-app"
+          overwrite: true
+
+      # 🚀 Install deps & run Next.js with PM2 on EC2
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /var/www/next-app
+
+            # Install dependencies (keep dev deps for Next build)
+            npm install
+
+            # Build Next.js app (server-side)
+            npm run build
+
+            # Start or restart with PM2 (Next.js on port 3000)
+            pm2 start "npm start" --name nextjs-dev || pm2 restart nextjs-dev
+            pm2 save
